@@ -1,0 +1,6 @@
+{
+  "allowed_universes": ["tron"],
+  "max_capacity": 8,
+  "overflow_strategy": "diegetic_expansion",
+  "notes": "Tron universe selected for retro digital game resonance"
+}

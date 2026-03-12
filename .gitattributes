@@ -1,0 +1,5 @@
+# Squad merge drivers — append-only files merge cleanly across branches
+.squad/decisions.md merge=union
+.squad/agents/*/history.md merge=union
+.squad/log/** merge=union
+.squad/orchestration-log/** merge=union

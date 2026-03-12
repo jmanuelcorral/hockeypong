@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hockey Pong</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Main Menu -->
+    <div id="menu" class="screen">
+      <h1 class="title">HOCKEY PONG</h1>
+      <div class="menu-buttons">
+        <button id="btn-single" class="pixel-btn">1 PLAYER</button>
+        <button id="btn-create" class="pixel-btn">CREATE GAME</button>
+        <div id="join-section" class="join-section">
+          <input id="input-room" type="text" class="pixel-input" placeholder="ROOM CODE" maxlength="6">
+          <button id="btn-join" class="pixel-btn">JOIN</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lobby / Waiting -->
+    <div id="lobby" class="screen hidden">
+      <h2 class="subtitle">WAITING FOR OPPONENT</h2>
+      <p id="room-code" class="room-code"></p>
+      <p class="hint">Share this code or link with a friend</p>
+      <button id="btn-copy-link" class="pixel-btn small">COPY INVITE LINK</button>
+      <button id="btn-back-menu" class="pixel-btn small">BACK</button>
+    </div>
+
+    <!-- Game Canvas -->
+    <div id="game-screen" class="screen hidden">
+      <canvas id="game-canvas" width="800" height="500"></canvas>
+      <div id="hud" class="hud">
+        <span id="score-display" class="score-display">0 — 0</span>
+      </div>
+    </div>
+
+    <!-- Game Over -->
+    <div id="game-over" class="screen hidden">
+      <h2 id="winner-text" class="subtitle"></h2>
+      <p id="final-score" class="room-code"></p>
+      <button id="btn-play-again" class="pixel-btn">PLAY AGAIN</button>
+      <button id="btn-main-menu" class="pixel-btn small">MAIN MENU</button>
+    </div>
+  </div>
+
+  <!-- Shared modules -->
+  <script src="/shared/constants.js"></script>
+  <script src="/shared/protocol.js"></script>
+  <script src="/shared/physics.js"></script>
+
+  <!-- Client modules -->
+  <script src="js/renderer.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/network.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "hockeypong",
+  "version": "1.0.0",
+  "description": "Hockey Pong — 2D pixel art multiplayer pong game",
+  "main": "src/server/index.js",
+  "scripts": {
+    "start": "node src/server/index.js",
+    "dev": "node --watch src/server/index.js"
+  },
+  "keywords": ["pong", "hockey", "multiplayer", "canvas", "websocket"],
+  "author": "Jose Corral",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.0",
+    "ws": "^8.18.0"
+  }
+}

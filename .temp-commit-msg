@@ -1,0 +1,9 @@
+feat: complete Hockey Pong game with single-player and multiplayer
+
+- Full client: HTML5 Canvas renderer, game loop, AI opponent, input handling
+- Full server: Express + WebSocket, room management, authoritative physics
+- Shared: physics engine, protocol definitions, game constants
+- Single-player mode with beatable AI
+- Multiplayer mode with invite links and real-time state sync
+
+Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>

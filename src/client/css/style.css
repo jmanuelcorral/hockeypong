@@ -1,0 +1,158 @@
+/* Hockey Pong — Pixel Art Styling */
+
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #0a0a1a;
+  color: #e0e0e0;
+  font-family: 'Press Start 2P', monospace;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+#app {
+  position: relative;
+  width: 800px;
+  height: 500px;
+}
+
+/* --- Screens --- */
+.screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* --- Typography --- */
+.title {
+  font-size: 36px;
+  color: #00e5ff;
+  text-shadow: 0 0 20px rgba(0, 229, 255, 0.5);
+  letter-spacing: 4px;
+  margin-bottom: 30px;
+}
+
+.subtitle {
+  font-size: 20px;
+  color: #ff6b6b;
+  text-shadow: 0 0 10px rgba(255, 107, 107, 0.4);
+}
+
+.room-code {
+  font-size: 28px;
+  color: #ffd93d;
+  letter-spacing: 8px;
+}
+
+.hint {
+  font-size: 10px;
+  color: #666;
+}
+
+/* --- Buttons --- */
+.pixel-btn {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 14px;
+  padding: 14px 28px;
+  background: #1a1a2e;
+  color: #00e5ff;
+  border: 3px solid #00e5ff;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.1s;
+  image-rendering: pixelated;
+}
+
+.pixel-btn:hover {
+  background: #00e5ff;
+  color: #0a0a1a;
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.6);
+}
+
+.pixel-btn:active {
+  transform: scale(0.95);
+}
+
+.pixel-btn.small {
+  font-size: 10px;
+  padding: 10px 20px;
+}
+
+/* --- Input --- */
+.pixel-input {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 16px;
+  padding: 12px 16px;
+  background: #1a1a2e;
+  color: #ffd93d;
+  border: 3px solid #ffd93d;
+  text-align: center;
+  text-transform: uppercase;
+  width: 200px;
+  letter-spacing: 6px;
+}
+
+.pixel-input::placeholder {
+  color: #444;
+  letter-spacing: 2px;
+}
+
+.pixel-input:focus {
+  outline: none;
+  box-shadow: 0 0 10px rgba(255, 217, 61, 0.4);
+}
+
+/* --- Layout helpers --- */
+.menu-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+
+.join-section {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 10px;
+}
+
+/* --- HUD --- */
+.hud {
+  position: absolute;
+  top: 8px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  pointer-events: none;
+}
+
+.score-display {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* --- Canvas --- */
+#game-canvas {
+  background: #0f1923;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  border: 2px solid #1a3a4a;
+}

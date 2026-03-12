@@ -124,3 +124,42 @@ The game uses a **top-down hockey rink** view:
 - **Rinzler:** Implement server room management, game loop, WebSocket message handlers, state broadcasting. Wire up the multiplayer backend.
 
 ---
+
+## Decision: Server Implementation Patterns
+
+**Author:** Rinzler  
+**Date:** 2026-03-12  
+**Status:** Implemented
+
+### Summary
+
+Full multiplayer server backend implemented in `src/server/index.js`. Key architectural decisions:
+
+### Room Lifecycle
+- Room phases: `waiting` → `countdown` → `playing` → `scored` → `over`
+- On score: game loop stops, 1.5s pause, then full re-countdown before resuming play
+- On game over: 3s delay before room cleanup (lets clients show results)
+- Disconnect resets room to `waiting` (remaining player could theoretically get a new opponent)
+
+### Networking
+- `wsToRoom` reverse-lookup Map for O(1) disconnect → room resolution
+- CREATE_ROOM sends both ROOM_CREATED and ROOM_JOINED (player 1 assignment) to creator
+- JOIN_ROOM is case-insensitive (room IDs uppercased on lookup)
+- OPPONENT_JOINED broadcast goes to both players on join
+
+### Game Loop
+- Two separate intervals: physics at 60 TPS, state broadcast at 20 Hz
+- Both intervals are stopped and restarted on score events to avoid stale ticks during pause
+- Server gathers player inputs each tick from stored `direction` field (set by PLAYER_INPUT handler)
+
+### Cleanup
+- Empty rooms cleaned immediately on last player disconnect
+- Periodic sweep every 60s catches idle rooms (ROOM_TIMEOUT_MS = 5 min)
+- Game over triggers delayed cleanup after 3s
+
+### Validation
+- Duplicate room join prevention (already-in-room check)
+- Input direction whitelist: only 'left', 'right', 'none' accepted
+- Room-full and room-not-found error responses
+
+---

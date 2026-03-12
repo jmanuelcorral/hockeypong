@@ -1,7 +1,7 @@
 // Hockey Pong — Game Constants
 // Shared between client and server. All units in pixels unless noted.
 
-const CONSTANTS = {
+var CONSTANTS = {
   // --- Canvas ---
   CANVAS_WIDTH: 800,
   CANVAS_HEIGHT: 500,
@@ -48,4 +48,7 @@ const CONSTANTS = {
 // Support both Node.js and browser
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = CONSTANTS;
+}
+if (typeof window !== 'undefined') {
+  window.CONSTANTS = CONSTANTS;
 }

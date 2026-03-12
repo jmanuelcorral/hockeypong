@@ -1,11 +1,11 @@
 // Hockey Pong — Shared Physics
 // Core movement and collision logic used by both client (single player) and server (multiplayer).
 
-const CONSTANTS = (typeof require !== 'undefined')
-  ? require('./constants')
-  : window.CONSTANTS;
+if (typeof require !== 'undefined' && typeof module !== 'undefined') {
+  var CONSTANTS = require('./constants');
+}
 
-const Physics = {
+var Physics = {
   // Create initial game state
   createGameState() {
     const cx = CONSTANTS.CANVAS_WIDTH / 2;
@@ -174,4 +174,7 @@ const Physics = {
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = Physics;
+}
+if (typeof window !== 'undefined') {
+  window.Physics = Physics;
 }

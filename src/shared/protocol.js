@@ -3,7 +3,7 @@
 //
 // All messages are JSON: { type: MSG_TYPE, ...payload }
 
-const MSG = {
+var MSG = {
   // --- Client → Server ---
   CREATE_ROOM:    'CREATE_ROOM',     // {} — request a new room
   JOIN_ROOM:      'JOIN_ROOM',       // { roomId } — join existing room via invite
@@ -39,4 +39,9 @@ function parseMsg(raw) {
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { MSG, makeMsg, parseMsg };
+}
+if (typeof window !== 'undefined') {
+  window.MSG = MSG;
+  window.makeMsg = makeMsg;
+  window.parseMsg = parseMsg;
 }

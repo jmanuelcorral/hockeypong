@@ -10,6 +10,9 @@
   "keywords": ["pong", "hockey", "multiplayer", "canvas", "websocket"],
   "author": "Jose Corral",
   "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "dependencies": {
     "express": "^4.21.0",
     "ws": "^8.18.0"

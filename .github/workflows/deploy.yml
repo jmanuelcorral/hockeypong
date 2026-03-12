@@ -1,0 +1,136 @@
+name: Deploy to Azure
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  AZURE_WEBAPP_NAME: hockeypong
+  NODE_VERSION: '20'
+
+jobs:
+  infra:
+    name: Deploy Infrastructure
+    runs-on: ubuntu-latest
+    outputs:
+      webapp-name: ${{ steps.deploy-bicep.outputs.webAppName }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      
+      # NOTE: You need to configure these GitHub secrets:
+      # - AZURE_CREDENTIALS: Service principal JSON from:
+      #   az ad sp create-for-rbac --name "hockeypong-deploy" \
+      #     --role contributor \
+      #     --scopes /subscriptions/{subscription-id}/resourceGroups/{resource-group} \
+      #     --sdk-auth
+      # - AZURE_SUBSCRIPTION_ID: Your Azure subscription ID
+      # - AZURE_RG: Resource group name (e.g., "hockeypong-rg")
+
+      - name: Create Resource Group
+        run: |
+          az group create \
+            --name ${{ secrets.AZURE_RG }} \
+            --location eastus2 \
+            --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy Bicep
+        id: deploy-bicep
+        run: |
+          output=$(az deployment group create \
+            --resource-group ${{ secrets.AZURE_RG }} \
+            --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }} \
+            --template-file infra/main.bicep \
+            --parameters infra/main.bicepparam \
+            --parameters appName=${{ env.AZURE_WEBAPP_NAME }} \
+            --query 'properties.outputs' \
+            --output json)
+          
+          webAppName=$(echo $output | jq -r '.webAppName.value')
+          hostname=$(echo $output | jq -r '.webAppHostname.value')
+          
+          echo "webAppName=$webAppName" >> $GITHUB_OUTPUT
+          echo "hostname=$hostname" >> $GITHUB_OUTPUT
+          echo "✅ Infrastructure deployed: https://$hostname"
+
+  deploy:
+    name: Deploy Application
+    runs-on: ubuntu-latest
+    needs: infra
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --omit=dev
+
+      - name: Create deployment package
+        run: |
+          mkdir -p deploy
+          cp -r src deploy/
+          cp package.json package-lock.json deploy/
+          cp -r node_modules deploy/
+          cd deploy
+          zip -r ../deploy.zip .
+          cd ..
+          echo "✅ Created deployment package: $(du -h deploy.zip | cut -f1)"
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ needs.infra.outputs.webapp-name }}
+          package: deploy.zip
+
+      - name: Ensure WebSockets are enabled
+        run: |
+          az webapp config set \
+            --name ${{ needs.infra.outputs.webapp-name }} \
+            --resource-group ${{ secrets.AZURE_RG }} \
+            --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }} \
+            --web-sockets-enabled true
+
+      - name: Get deployment URL
+        id: get-url
+        run: |
+          hostname=$(az webapp show \
+            --name ${{ needs.infra.outputs.webapp-name }} \
+            --resource-group ${{ secrets.AZURE_RG }} \
+            --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }} \
+            --query 'defaultHostName' \
+            --output tsv)
+          
+          echo "url=https://$hostname" >> $GITHUB_OUTPUT
+          echo "🚀 Deployment complete!"
+          echo "🎮 Hockey Pong is live at: https://$hostname"
+
+      - name: Deployment Summary
+        run: |
+          echo "## 🚀 Deployment Successful" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🎮 **Hockey Pong is now live!**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **URL:** ${{ steps.get-url.outputs.url }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **App:** ${{ needs.infra.outputs.webapp-name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Region:** East US 2" >> $GITHUB_STEP_SUMMARY
+          echo "- **Runtime:** Node.js ${{ env.NODE_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **WebSockets:** ✅ Enabled" >> $GITHUB_STEP_SUMMARY

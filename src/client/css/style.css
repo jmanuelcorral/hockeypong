@@ -149,6 +149,33 @@ body {
   color: rgba(255, 255, 255, 0.6);
 }
 
+/* --- Menu status / error --- */
+.menu-status {
+  font-size: 10px;
+  color: #ffd93d;
+  text-align: center;
+  min-height: 16px;
+  margin-top: 4px;
+  animation: status-pulse 1s ease-in-out infinite;
+}
+
+.menu-status.error {
+  color: #ff6b6b;
+  text-shadow: 0 0 8px rgba(255, 107, 107, 0.4);
+  animation: none;
+}
+
+@keyframes status-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.pixel-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 /* --- Canvas --- */
 #game-canvas {
   background: #0f1923;

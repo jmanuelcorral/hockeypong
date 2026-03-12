@@ -18,6 +18,9 @@ const Game = (() => {
     winnerText: document.getElementById('winner-text'),
     finalScore: document.getElementById('final-score'),
     roomInput: document.getElementById('input-room'),
+    menuStatus: document.getElementById('menu-status'),
+    btnCreate: document.getElementById('btn-create'),
+    btnJoin: document.getElementById('btn-join'),
   };
 
   let mode = null; // 'single' | 'multi'
@@ -143,19 +146,60 @@ const Game = (() => {
     });
   }
 
+  // --- Multiplayer UI helpers ---
+  function showMenuStatus(text, isError) {
+    els.menuStatus.textContent = text;
+    els.menuStatus.classList.toggle('error', !!isError);
+    els.menuStatus.classList.remove('hidden');
+  }
+
+  function hideMenuStatus() {
+    els.menuStatus.classList.add('hidden');
+    els.menuStatus.classList.remove('error');
+    els.menuStatus.textContent = '';
+  }
+
+  function setMultiplayerButtonsEnabled(enabled) {
+    els.btnCreate.disabled = !enabled;
+    els.btnJoin.disabled = !enabled;
+  }
+
+  function handleConnectionError(message) {
+    setMultiplayerButtonsEnabled(true);
+    showMenuStatus(message, true);
+    // Auto-clear error after 4 seconds
+    setTimeout(() => {
+      if (els.menuStatus.classList.contains('error')) {
+        hideMenuStatus();
+      }
+    }, 4000);
+  }
+
   // --- Multiplayer handlers ---
   function startMultiplayerCreate() {
     mode = 'multi';
+    setMultiplayerButtonsEnabled(false);
+    showMenuStatus('CONNECTING...');
     Network.connect(handleServerMessage, () => {
+      hideMenuStatus();
+      setMultiplayerButtonsEnabled(true);
       Network.send(MSG.CREATE_ROOM);
-    }, handleDisconnect);
+    }, handleDisconnect, (errMsg) => {
+      handleConnectionError(errMsg);
+    });
   }
 
   function startMultiplayerJoin(roomId) {
     mode = 'multi';
+    setMultiplayerButtonsEnabled(false);
+    showMenuStatus('CONNECTING...');
     Network.connect(handleServerMessage, () => {
+      hideMenuStatus();
+      setMultiplayerButtonsEnabled(true);
       Network.send(MSG.JOIN_ROOM, { roomId: roomId.toUpperCase() });
-    }, handleDisconnect);
+    }, handleDisconnect, (errMsg) => {
+      handleConnectionError(errMsg);
+    });
   }
 
   function handleServerMessage(msg) {
@@ -223,6 +267,8 @@ const Game = (() => {
   function handleDisconnect() {
     stopGameLoop();
     Network.disconnect();
+    setMultiplayerButtonsEnabled(true);
+    hideMenuStatus();
     showScreen('menu');
   }
 

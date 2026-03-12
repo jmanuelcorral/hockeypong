@@ -14,6 +14,9 @@
 | AI opponent logic | Quorra + Flynn | Quorra implements, Flynn reviews |
 | Tests, QA, edge cases, performance | Ram | All testing and quality |
 | Multiplayer sync testing, latency | Ram + Rinzler | Ram tests, Rinzler fixes |
+| Azure deployment, infrastructure, IaC | Clu | DevOps owns all infra and CI/CD |
+| GitHub Actions, CI/CD pipelines | Clu | Deployment automation |
+| Environment config, secrets, scaling | Clu | Production configuration |
 | Docs, logs, decisions | Scribe | Silent — never user-facing |
 | Work queue, backlog, monitoring | Ralph | Automated work tracking |
 

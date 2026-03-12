@@ -15,5 +15,6 @@
 | Quorra | Game Dev | HTML5 Canvas, pixel art rendering, game mechanics, UI/UX | ⚛️ Game Dev |
 | Rinzler | Backend Dev | Node.js server, WebSockets, matchmaking, room management | 🔧 Backend |
 | Ram | Tester | Game testing, multiplayer edge cases, AI behavior, perf | 🧪 Tester |
+| Clu | DevOps / Infra | Azure, IaC (Bicep), GitHub Actions CI/CD, deployment | ⚙️ DevOps |
 | Scribe | Scribe | Memory, decisions, session logs | 📋 Scribe |
 | Ralph | Work Monitor | Work queue, backlog, keep-alive | 🔄 Monitor |

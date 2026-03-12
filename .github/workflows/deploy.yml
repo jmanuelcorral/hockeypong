@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_WEBAPP_NAME: hockeypong
+  AZURE_APP_NAME: hockeypong
   NODE_VERSION: '20'
 
 jobs:
@@ -15,8 +15,9 @@ jobs:
     name: Deploy Infrastructure
     runs-on: ubuntu-latest
     outputs:
-      webapp-name: ${{ steps.deploy-bicep.outputs.webAppName }}
-    
+      acr-name: ${{ steps.deploy-bicep.outputs.acrName }}
+      acr-login-server: ${{ steps.deploy-bicep.outputs.acrLoginServer }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -25,7 +26,7 @@ jobs:
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-      
+
       # NOTE: You need to configure these GitHub secrets:
       # - AZURE_CREDENTIALS: Service principal JSON from:
       #   az ad sp create-for-rbac --name "hockeypong-deploy" \
@@ -50,78 +51,95 @@ jobs:
             --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }} \
             --template-file infra/main.bicep \
             --parameters infra/main.bicepparam \
-            --parameters appName=${{ env.AZURE_WEBAPP_NAME }} \
+            --parameters appName=${{ env.AZURE_APP_NAME }} \
             --query 'properties.outputs' \
             --output json)
-          
-          webAppName=$(echo $output | jq -r '.webAppName.value')
-          hostname=$(echo $output | jq -r '.webAppHostname.value')
-          
-          echo "webAppName=$webAppName" >> $GITHUB_OUTPUT
-          echo "hostname=$hostname" >> $GITHUB_OUTPUT
-          echo "✅ Infrastructure deployed: https://$hostname"
+
+          acrName=$(echo $output | jq -r '.acrName.value')
+          acrLoginServer=$(echo $output | jq -r '.acrLoginServer.value')
+          containerFqdn=$(echo $output | jq -r '.containerFqdn.value')
+
+          echo "acrName=$acrName" >> $GITHUB_OUTPUT
+          echo "acrLoginServer=$acrLoginServer" >> $GITHUB_OUTPUT
+          echo "containerFqdn=$containerFqdn" >> $GITHUB_OUTPUT
+          echo "✅ Infrastructure deployed — ACR: $acrLoginServer"
 
   deploy:
-    name: Deploy Application
+    name: Build & Deploy Container
     runs-on: ubuntu-latest
     needs: infra
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci --omit=dev
-
-      - name: Create deployment package
-        run: |
-          mkdir -p deploy
-          cp -r src deploy/
-          cp package.json package-lock.json deploy/
-          cp -r node_modules deploy/
-          cd deploy
-          zip -r ../deploy.zip .
-          cd ..
-          echo "✅ Created deployment package: $(du -h deploy.zip | cut -f1)"
 
       - name: Azure Login
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Deploy to Azure Web App
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: ${{ needs.infra.outputs.webapp-name }}
-          package: deploy.zip
-
-      - name: Ensure WebSockets are enabled
+      - name: Login to ACR
         run: |
-          az webapp config set \
-            --name ${{ needs.infra.outputs.webapp-name }} \
+          az acr login \
+            --name ${{ needs.infra.outputs.acr-name }} \
+            --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build and push Docker image
+        run: |
+          IMAGE=${{ needs.infra.outputs.acr-login-server }}/${{ env.AZURE_APP_NAME }}
+          TAG=${GITHUB_SHA::8}
+
+          docker build -t $IMAGE:$TAG -t $IMAGE:latest .
+          docker push $IMAGE:$TAG
+          docker push $IMAGE:latest
+
+          echo "image=$IMAGE:$TAG" >> $GITHUB_ENV
+          echo "✅ Image pushed: $IMAGE:$TAG"
+
+      - name: Get ACR credentials
+        id: acr-creds
+        run: |
+          creds=$(az acr credential show \
+            --name ${{ needs.infra.outputs.acr-name }} \
+            --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }} \
+            --output json)
+
+          echo "username=$(echo $creds | jq -r '.username')" >> $GITHUB_OUTPUT
+          echo "password=$(echo $creds | jq -r '.passwords[0].value')" >> $GITHUB_OUTPUT
+
+      - name: Deploy container instance
+        run: |
+          az container create \
             --resource-group ${{ secrets.AZURE_RG }} \
             --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }} \
-            --web-sockets-enabled true
+            --name ${{ env.AZURE_APP_NAME }}-ci \
+            --image ${{ env.image }} \
+            --registry-login-server ${{ needs.infra.outputs.acr-login-server }} \
+            --registry-username ${{ steps.acr-creds.outputs.username }} \
+            --registry-password "${{ steps.acr-creds.outputs.password }}" \
+            --dns-name-label ${{ env.AZURE_APP_NAME }} \
+            --ports 8080 \
+            --os-type Linux \
+            --cpu 1 \
+            --memory 1 \
+            --environment-variables PORT=8080 \
+            --restart-policy Always
+
+          echo "🚀 Container updated with new image"
 
       - name: Get deployment URL
         id: get-url
         run: |
-          hostname=$(az webapp show \
-            --name ${{ needs.infra.outputs.webapp-name }} \
+          fqdn=$(az container show \
             --resource-group ${{ secrets.AZURE_RG }} \
             --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }} \
-            --query 'defaultHostName' \
+            --name ${{ env.AZURE_APP_NAME }}-ci \
+            --query 'ipAddress.fqdn' \
             --output tsv)
-          
-          echo "url=https://$hostname" >> $GITHUB_OUTPUT
+
+          echo "url=http://$fqdn:8080" >> $GITHUB_OUTPUT
           echo "🚀 Deployment complete!"
-          echo "🎮 Hockey Pong is live at: https://$hostname"
+          echo "🎮 Hockey Pong is live at: http://$fqdn:8080"
 
       - name: Deployment Summary
         run: |
@@ -130,7 +148,8 @@ jobs:
           echo "🎮 **Hockey Pong is now live!**" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **URL:** ${{ steps.get-url.outputs.url }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **App:** ${{ needs.infra.outputs.webapp-name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Container:** ${{ env.AZURE_APP_NAME }}-ci" >> $GITHUB_STEP_SUMMARY
+          echo "- **Image:** ${{ env.image }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Region:** East US 2" >> $GITHUB_STEP_SUMMARY
-          echo "- **Runtime:** Node.js ${{ env.NODE_VERSION }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **WebSockets:** ✅ Enabled" >> $GITHUB_STEP_SUMMARY
+          echo "- **Runtime:** Node.js ${{ env.NODE_VERSION }} (Alpine)" >> $GITHUB_STEP_SUMMARY
+          echo "- **WebSockets:** ✅ Native support" >> $GITHUB_STEP_SUMMARY

@@ -45,3 +45,26 @@ Created complete Azure deployment infrastructure:
 - Resource group scoped deployment (RG created by workflow if needed)
 - Production-only npm install (`npm ci --omit=dev`) before packaging
 - Post-deployment validation step ensures WebSockets stay enabled
+
+### Migration to Azure Container Instances (ACI)
+**Date:** 2025-07-18
+
+Replaced App Service with ACR + ACI due to Azure quota limitations on App Service Plans.
+
+**Files created/modified:**
+- `Dockerfile` — Multi-stage build (Node.js 20 Alpine), runs as non-root `node` user, port 8080
+- `.dockerignore` — Excludes node_modules, .git, infra, .squad, .github, etc.
+- `infra/main.bicep` — Now deploys ACR (Basic SKU, admin enabled) + ACI (1 vCPU, 1 GB, Linux)
+- `infra/main.bicepparam` — Simplified params (appName only, removed skuName/nodeVersion)
+- `.github/workflows/deploy.yml` — Two-job pipeline: infra (Bicep) → deploy (Docker build/push + `az container create`)
+- `infra/README.md` — Updated docs for ACI architecture
+
+**Architecture decisions:**
+- **ACR Basic SKU** — cheapest registry tier, admin credentials enabled so ACI can pull images
+- **ACI 1 vCPU / 1 GB** — sufficient for a lightweight Node.js game server
+- **WebSockets** — natively supported on ACI, no HTTP/2 or alwaysOn workarounds needed
+- **Image tagging** — SHA-based tags (first 8 chars of commit SHA) + `latest` for rollback capability
+- **Deploy via `az container create`** — ACI doesn't have a separate deploy step; recreating the container group with a new image is the standard update pattern
+- **Port 8080** — consistent across Dockerfile ENV, Bicep config, and CI/CD
+- **Non-root container** — `USER node` in Dockerfile for security
+- **No TLS termination** — ACI exposes raw TCP; app is HTTP on port 8080
